@@ -16,6 +16,8 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.team27.databinding.ActivityUploadBinding
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
+import java.util.*
+
 class UploadActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
@@ -40,8 +42,9 @@ class UploadActivity : AppCompatActivity() {
 //        googleSignInClient = GoogleSignIn.getClient(requireContext(), signInOptions)
 
 // Request authorization from the user
-        startActivityForResult(googleSignInClient.signInIntent, REQUEST_CODE_SIGN_IN)
-        }
+
+
+    }
 }
 
 
