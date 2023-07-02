@@ -7,42 +7,32 @@ import android.view.View
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.ImageButton
-import android.widget.TextView
-import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.navigateUp
-import androidx.navigation.ui.setupActionBarWithNavController
-import com.example.team27.databinding.ActivityProfileBinding
 
-class ProfileActivity : AppCompatActivity() {
+class InfoActivity  : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
-    private lateinit var binding: ActivityProfileBinding
     private lateinit var hamburgerImageButton: ImageButton
     private lateinit var button_click: Animation
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.content_profile)
 
-        val rewardsTextView: TextView = findViewById(R.id.textView11)
-        rewardsTextView.text = "${RewardsManager.rewardsValue}"
+        setContentView(R.layout.activity_info)
 
         button_click = AnimationUtils.loadAnimation(this, R.anim.button_click)
 
-        hamburgerImageButton = findViewById(R.id.hamburgerImageButton)
+        hamburgerImageButton = findViewById<ImageButton>(R.id.hamburgerImageButton)
 
         hamburgerImageButton.setOnClickListener(View.OnClickListener {
             hamburgerImageButton.setAnimation(button_click)
             Handler().postDelayed({
-                val intent = Intent(this, MenuActivity::class.java)
+                val intent = Intent(this@InfoActivity, MenuActivity::class.java)
                 startActivity(intent)
                 finish()
-            }, 200)
+            },200)
         })
     }
-
-
 }

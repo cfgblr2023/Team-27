@@ -2,35 +2,48 @@ package com.example.team27
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.location.Location
+import android.content.DialogInterface
 import android.net.Uri
-import android.os.Bundle
 import android.os.Environment
 import android.os.StrictMode
-import android.preference.PreferenceManager
-import android.provider.MediaStore
 import android.provider.OpenableColumns
-import android.util.Log
-import android.widget.Button
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.ui.AppBarConfiguration
 import androidx.room.*
-import com.example.team27.databinding.ActivityHomeBinding
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.maps.GoogleMap
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.launch
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.location.Location
+import android.os.Bundle
+import android.os.Handler
+import android.preference.PreferenceManager
+import android.provider.MediaStore
+import android.util.Log
+import android.view.View
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
+import android.widget.Button
+import android.widget.ImageButton
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.navigation.ui.AppBarConfiguration
+import com.example.team27.databinding.ActivityHomeBinding
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MarkerOptions
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -49,6 +62,7 @@ class HomeActivity : AppCompatActivity(){
     private lateinit var binding: ActivityHomeBinding
     private lateinit var mMap: GoogleMap
     private lateinit var upload : Button
+    private lateinit var recentre : Button
     private lateinit var map: MapView
     private val REQUEST_IMAGE_CAPTURE = 1
     private lateinit var currentPhotoPath: String
@@ -56,6 +70,7 @@ class HomeActivity : AppCompatActivity(){
     private var longitude: Double=0.0
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+
     private lateinit var locationDao: LocationDao
     private lateinit var storageRef: StorageReference
     private val mStorage: StorageReference? = null
@@ -75,6 +90,9 @@ class HomeActivity : AppCompatActivity(){
         }
 
 
+    private lateinit var start: Button
+    private lateinit var hamburgerImageButton: ImageButton
+    private lateinit var button_click: Animation
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -86,7 +104,8 @@ class HomeActivity : AppCompatActivity(){
             .permitAll().build()
         StrictMode.setThreadPolicy(policy)
 
-        val ctx = getApplicationContext();
+        recentre = findViewById(R.id.recenter)
+        val ctx = applicationContext
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
         //setting this before the layout is inflated is a good idea
         //it 'should' ensure that the map has a writable location for the map cache, even without permissions
@@ -107,7 +126,6 @@ class HomeActivity : AppCompatActivity(){
 
         if (checkLocationPermissions()) {
             getCurrentLocation()
-            Log.e("HELLP", "WELP")
         } else {
             requestLocationPermissions()
         }
@@ -124,6 +142,25 @@ class HomeActivity : AppCompatActivity(){
 //        marker1.icon = markerIcon
         marker1.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         map.overlays.add(marker1)
+
+        val marker = Marker(map)
+
+        marker.position = GeoPoint(51.5074, -0.1278) // Marker coordinates
+        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+        map.overlays.add(marker)
+        map.invalidate()
+        button_click = AnimationUtils.loadAnimation(this, R.anim.button_click)
+
+        hamburgerImageButton = findViewById(R.id.hamburgerImageButton)
+
+        hamburgerImageButton.setOnClickListener(View.OnClickListener {
+            hamburgerImageButton.setAnimation(button_click)
+            Handler().postDelayed({
+                val intent = Intent(this, MenuActivity::class.java)
+                startActivity(intent)
+                finish()
+            }, 200)
+        })
 
 
 //        setSupportActionBar(binding.toolbar)
@@ -144,6 +181,8 @@ class HomeActivity : AppCompatActivity(){
         // ActivityResultLauncher callback
         imagePickerActivityResult.launch(galleryIntent)
 
+
+
 //            if (ContextCompat.checkSelfPermission(
 //                    this,
 //                    cameraPermission
@@ -158,11 +197,31 @@ class HomeActivity : AppCompatActivity(){
 
         }
 
+        recentre.setOnClickListener {
+           getCurrentLocation()
+
+            Log.e("LATITUDE",latitude.toString())
+            val startPoint = GeoPoint(latitude, longitude)
+            mapController.setCenter(startPoint)
+        }
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // Check for location permissions and request if not granted
 
 
+    }
+
+    private fun showAlertDialog() {
+        val alertDialogBuilder: AlertDialog.Builder = AlertDialog.Builder(this)
+        alertDialogBuilder.setTitle("Congratulations!")
+        alertDialogBuilder.setMessage("Yayyy! You have earned 100 points!")
+        alertDialogBuilder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
+            dialog.dismiss()
+        })
+
+        val alertDialog: AlertDialog = alertDialogBuilder.create()
+        alertDialog.show()
     }
 
 
@@ -185,6 +244,9 @@ class HomeActivity : AppCompatActivity(){
 
                 // On success, download the file URL and display it
                 uploadTask.addOnSuccessListener {
+
+                    showAlertDialog()
+                    RewardsManager.rewardsValue += 100
                     // using glide library to display the image
 //                    storageRef.child("upload/$sd").downloadUrl.addOnSuccessListener {
 //                        Glide.with(this@MainActivity)
@@ -390,6 +452,8 @@ class HomeActivity : AppCompatActivity(){
         }
         return locations
     }
+
+
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
